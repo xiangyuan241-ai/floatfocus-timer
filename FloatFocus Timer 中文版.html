@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>FloatFocus Timer — 设计与 MVP</title>
+<style>
+  :root {
+    --bg:           #f5f3ee;
+    --panel:        #ffffff;
+    --panel-2:      #fbfaf7;
+    --ink:          #1a1a1c;
+    --ink-soft:     #6b6b70;
+    --ink-faint:    #a3a39f;
+    --stroke:       rgba(0, 0, 0, 0.07);
+    --stroke-soft:  rgba(0, 0, 0, 0.04);
+    --accent:       oklch(0.62 0.14 28);
+    --accent-tint:  oklch(0.94 0.04 28);
+    --good:         oklch(0.60 0.12 150);
+    --sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --mono: "SF Mono", ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+  body { font-size: 14px; line-height: 1.5; }
+  a { color: var(--accent); text-decoration: none; }
+
+  /* ---------------- Page shell ---------------- */
+  .page { max-width: 1160px; margin: 0 auto; padding: 56px 36px 120px; }
+
+  .head { display: flex; align-items: baseline; justify-content: space-between; gap: 24px; margin-bottom: 8px; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand-dot {
+    width: 24px; height: 24px; border-radius: 8px;
+    background: var(--ink); position: relative;
+    box-shadow: 0 0 0 4px rgba(0,0,0,0.04);
+  }
+  .brand-dot::after { content: ""; position: absolute; inset: 5px; border-radius: 4px; background: var(--bg); }
+  .brand h1 { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
+  .brand .v { color: var(--ink-faint); font-family: var(--mono); font-size: 11px; margin-left: 4px; }
+  .head .meta { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); }
+
+  .lede {
+    font-size: 32px; font-weight: 300; letter-spacing: -0.02em; line-height: 1.18;
+    max-width: 720px; margin: 28px 0 12px;
+    color: var(--ink);
+    text-wrap: balance;
+  }
+  .lede em { font-style: normal; color: var(--accent); }
+  .sub { color: var(--ink-soft); max-width: 620px; margin: 0; }
+
+  /* ---------------- Section ---------------- */
+  section { margin-top: 64px; }
+  .sec-label {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--mono); font-size: 11px; color: var(--ink-faint);
+    text-transform: uppercase; letter-spacing: 0.08em;
+    margin-bottom: 14px;
+  }
+  .sec-label::before {
+    content: ""; width: 16px; height: 1px; background: var(--ink-faint);
+  }
+  .sec-title { font-size: 22px; font-weight: 500; letter-spacing: -0.01em; margin: 0 0 8px; }
+  .sec-sub { color: var(--ink-soft); max-width: 640px; margin: 0 0 24px; }
+
+  /* ---------------- Hero: faux desktop ---------------- */
+  .stage {
+    position: relative;
+    height: 560px;
+    border-radius: 22px;
+    overflow: hidden;
+    border: 1px solid var(--stroke);
+    background:
+      radial-gradient(1200px 600px at 30% 0%, #ffffff 0%, transparent 60%),
+      radial-gradient(900px 500px at 100% 100%, #f0ece2 0%, transparent 55%),
+      linear-gradient(180deg, #f7f4ec 0%, #ebe6da 100%);
+  }
+  .stage-controls {
+    position: absolute; top: 16px; right: 16px;
+    display: flex; gap: 6px;
+    padding: 6px;
+    background: rgba(255,255,255,0.65);
+    backdrop-filter: blur(14px);
+    border: 1px solid var(--stroke);
+    border-radius: 12px;
+    z-index: 10;
+    font-family: var(--mono); font-size: 11px;
+  }
+  .stage-controls button {
+    background: transparent; border: 0; color: var(--ink-soft);
+    padding: 5px 9px; border-radius: 7px; cursor: pointer; font: inherit;
+    transition: background 0.12s, color 0.12s;
+  }
+  .stage-controls button:hover { background: rgba(0,0,0,0.04); color: var(--ink); }
+  .stage-controls button.is-on { background: var(--ink); color: #fff; }
+  .stage-controls .sep { width: 1px; background: var(--stroke); margin: 0 2px; }
+
+  /* Fake desktop window inside stage */
+  .desktop-window {
+    position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    width: 78%; height: 78%;
+    background: #fff;
+    border-radius: 14px;
+    border: 1px solid var(--stroke);
+    box-shadow: 0 30px 80px rgba(0,0,0,0.10), 0 8px 20px rgba(0,0,0,0.04);
+    overflow: hidden;
+    display: grid;
+    grid-template-rows: 36px 1fr;
+  }
+  .dw-bar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 0 14px; border-bottom: 1px solid var(--stroke-soft);
+    background: var(--panel-2);
+  }
+  .traffic { display: flex; gap: 6px; }
+  .traffic span { width: 10px; height: 10px; border-radius: 50%; background: #e0ddd5; }
+  .traffic span:nth-child(1) { background: #ed6a5e; }
+  .traffic span:nth-child(2) { background: #f4be4f; }
+  .traffic span:nth-child(3) { background: #61c554; }
+  .dw-title { font-size: 11px; color: var(--ink-faint); margin: 0 auto; font-family: var(--mono); }
+  .dw-body { display: grid; grid-template-columns: 180px 1fr 220px; }
+  .dw-body > div { padding: 16px; }
+  .dw-sidebar { border-right: 1px solid var(--stroke-soft); background: #fcfbf8; }
+  .dw-right { border-left: 1px solid var(--stroke-soft); background: #fcfbf8; }
+  .dw-stub { height: 9px; border-radius: 4px; background: #eee9dd; margin-bottom: 9px; }
+  .dw-stub.s { width: 60%; }
+  .dw-stub.m { width: 80%; }
+  .dw-stub.dot::before {
+    content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--ink-faint); margin-right: 8px; vertical-align: middle;
+  }
+  .dw-canvas {
+    display: flex; align-items: center; justify-content: center;
+    background:
+      radial-gradient(circle at 50% 50%, #ffffff 0%, #f3eee2 100%);
+    position: relative;
+  }
+  .dw-canvas .ph {
+    width: 60%; aspect-ratio: 1 / 1; max-height: 70%;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #d8cfb6, #b9ad8e 70%, #8e8466);
+    box-shadow: inset 0 -20px 40px rgba(0,0,0,0.12), 0 20px 40px rgba(0,0,0,0.08);
+    opacity: 0.85;
+  }
+  .dw-canvas .ph-label {
+    position: absolute; bottom: 16px; left: 16px; right: 16px;
+    text-align: center; font-family: var(--mono); font-size: 10px; color: var(--ink-faint);
+    letter-spacing: 0.04em;
+  }
+
+  /* ---------------- The floating Timer ---------------- */
+  .timer {
+    position: absolute;
+    width: 220px; height: 96px;
+    z-index: 20;
+    transition: opacity 0.3s ease;
+  }
+  .timer-card {
+    position: relative;
+    width: 100%; height: 100%;
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    border: 1px solid rgba(0,0,0,0.06);
+    border-radius: 18px;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.7) inset,
+      0 12px 28px rgba(0,0,0,0.14),
+      0 2px 6px rgba(0,0,0,0.06);
+    display: flex; align-items: center; justify-content: center;
+    cursor: grab;
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.18s ease;
+  }
+  .timer.dragging .timer-card { cursor: grabbing; transform: scale(1.02); }
+  .timer-card .t-num {
+    font-size: 44px; font-weight: 300; letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums; line-height: 1;
+    color: var(--ink); transition: color 0.2s, opacity 0.2s;
+  }
+  .timer.is-done .t-num { color: var(--accent); }
+  .timer:hover .t-num { opacity: 0.85; }
+
+  /* Controls */
+  .t-controls {
+    position: absolute; bottom: 8px; left: 50%;
+    transform: translateX(-50%) translateY(4px);
+    display: flex; gap: 4px; padding: 4px;
+    background: rgba(0,0,0,0.04);
+    border: 1px solid rgba(0,0,0,0.06);
+    border-radius: 999px;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.18s ease, transform 0.18s ease;
+  }
+  .timer:hover .t-controls,
+  .timer.force-hover .t-controls {
+    opacity: 1; pointer-events: auto;
+    transform: translateX(-50%) translateY(0);
+  }
+  .t-btn {
+    width: 22px; height: 22px; border-radius: 999px; border: 0;
+    background: transparent; color: var(--ink-soft);
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: background 0.12s, color 0.12s;
+  }
+  .t-btn:hover { background: rgba(0,0,0,0.06); color: var(--ink); }
+  .t-btn.on { color: var(--accent); }
+
+  /* Progress */
+  .t-progress {
+    position: absolute; left: 14px; right: 14px; bottom: 4px;
+    height: 2px; border-radius: 2px; background: rgba(0,0,0,0.05); overflow: hidden;
+    opacity: 0; transition: opacity 0.2s;
+  }
+  .timer.is-running .t-progress, .timer.is-paused .t-progress { opacity: 1; }
+  .t-progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.4s linear; }
+
+  /* Lock indicator */
+  .t-lock {
+    position: absolute; top: 6px; left: 8px;
+    width: 14px; height: 14px; color: var(--accent);
+    opacity: 0; transition: opacity 0.2s;
+  }
+  .timer.is-through .t-lock { opacity: 0.75; }
+  .timer.is-through .timer-card {
+    border-color: color-mix(in oklch, var(--accent) 30%, rgba(0,0,0,0.06));
+  }
+  .timer.is-through { cursor: not-allowed; }
+  .timer.is-through .timer-card { cursor: not-allowed; }
+  .timer.is-through:not(.force-hover) .t-controls { opacity: 0 !important; pointer-events: none !important; }
+
+  /* Stage hint label */
+  .stage-hint {
+    position: absolute; bottom: 14px; left: 16px;
+    font-family: var(--mono); font-size: 10.5px; color: var(--ink-faint);
+    display: flex; gap: 12px; align-items: center;
+    background: rgba(255,255,255,0.6);
+    backdrop-filter: blur(10px);
+    padding: 6px 10px; border-radius: 8px;
+    border: 1px solid var(--stroke-soft);
+  }
+  .stage-hint kbd {
+    font-family: var(--mono); font-size: 10px;
+    padding: 1px 5px; border-radius: 4px;
+    background: rgba(0,0,0,0.06); color: var(--ink-soft);
+    border: 1px solid var(--stroke);
+  }
+
+  /* ---------------- State grid ---------------- */
+  .state-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .state-card {
+    background: var(--panel);
+    border: 1px solid var(--stroke);
+    border-radius: 14px;
+    padding: 20px;
+    aspect-ratio: 1 / 0.85;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .state-card .canvas {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(180deg, #f6f1e2, #ede4cc);
+    border-radius: 10px;
+    position: relative;
+    overflow: hidden;
+    margin: -4px -4px 12px;
+  }
+  .state-card .canvas .timer {
+    position: relative; left: auto; top: auto; transform: scale(0.72);
+  }
+  .state-card .label { font-size: 12px; color: var(--ink-soft); font-family: var(--mono); }
+  .state-card .label strong { display: block; color: var(--ink); font-weight: 500; font-family: var(--sans); font-size: 13px; margin-bottom: 2px; }
+
+  /* ---------------- Two-col content ---------------- */
+  .twocol { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--stroke); border-radius: 14px; padding: 22px;
+  }
+  .card h3 { margin: 0 0 6px; font-size: 14px; font-weight: 600; letter-spacing: -0.005em; }
+  .card p { margin: 0 0 12px; color: var(--ink-soft); }
+  .kv { display: grid; grid-template-columns: 160px 1fr; gap: 10px 18px; font-size: 13px; }
+  .kv dt { color: var(--ink-faint); font-family: var(--mono); font-size: 11.5px; }
+  .kv dd { margin: 0; color: var(--ink); }
+  .kv dd code { font-family: var(--mono); font-size: 12px; background: rgba(0,0,0,0.04); padding: 1px 5px; border-radius: 4px; }
+
+  /* ---------------- File tree ---------------- */
+  .tree {
+    font-family: var(--mono); font-size: 12px; line-height: 1.85;
+    color: var(--ink); background: var(--panel-2);
+    padding: 18px 22px; border-radius: 12px; border: 1px solid var(--stroke);
+  }
+  .tree .dim { color: var(--ink-faint); }
+  .tree .file { color: var(--ink); }
+  .tree .folder { color: var(--ink); font-weight: 500; }
+  .tree .desc { color: var(--ink-faint); margin-left: 10px; }
+
+  /* ---------------- Code blocks ---------------- */
+  .code-tabs {
+    display: flex; flex-wrap: wrap; gap: 4px;
+    margin-bottom: 0;
+    border: 1px solid var(--stroke); border-bottom: 0;
+    border-radius: 12px 12px 0 0;
+    background: var(--panel-2);
+    padding: 6px;
+  }
+  .code-tabs button {
+    background: transparent; border: 0;
+    font-family: var(--mono); font-size: 11.5px;
+    color: var(--ink-soft);
+    padding: 6px 10px; border-radius: 7px;
+    cursor: pointer; transition: background 0.12s, color 0.12s;
+  }
+  .code-tabs button:hover { color: var(--ink); }
+  .code-tabs button.active { background: var(--ink); color: #fff; }
+  .code-wrap {
+    border: 1px solid var(--stroke); border-top: 0;
+    border-radius: 0 0 12px 12px;
+    background: #1c1c1e; color: #e8e6e0;
+    max-height: 480px; overflow: auto;
+  }
+  .code-wrap pre {
+    margin: 0; padding: 18px 22px;
+    font-family: var(--mono); font-size: 12px; line-height: 1.7;
+    white-space: pre;
+  }
+  .code-wrap pre .c { color: #7d8896; font-style: italic; }
+  .code-wrap pre .k { color: #d291bc; }
+  .code-wrap pre .s { color: #c8b89a; }
+  .code-wrap pre .n { color: #88c0d0; }
+  .code-wrap pre .f { color: #a3be8c; }
+
+  /* ---------------- Setup / Run ---------------- */
+  .term {
+    background: #1c1c1e; color: #e8e6e0;
+    border-radius: 12px;
+    padding: 18px 22px;
+    font-family: var(--mono); font-size: 12.5px; line-height: 1.85;
+    border: 1px solid var(--stroke);
+  }
+  .term .p { color: #7c8a96; }
+  .term .cmd { color: #fff; }
+  .term .out { color: #b3b0a6; }
+
+  .pill {
+    display: inline-block;
+    font-family: var(--mono); font-size: 10.5px;
+    padding: 2px 7px; border-radius: 999px;
+    background: var(--accent-tint); color: var(--accent);
+    border: 1px solid color-mix(in oklch, var(--accent) 30%, transparent);
+  }
+  .pill.gray { background: rgba(0,0,0,0.04); color: var(--ink-soft); border-color: var(--stroke); }
+
+  /* ---------------- Roadmap ---------------- */
+  .roadmap { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .road-card { background: var(--panel); border: 1px solid var(--stroke); border-radius: 14px; padding: 18px 20px; }
+  .road-card .n { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); margin-bottom: 8px; }
+  .road-card h4 { margin: 0 0 6px; font-size: 13.5px; font-weight: 600; letter-spacing: -0.005em; }
+  .road-card p { margin: 0; color: var(--ink-soft); font-size: 12.5px; line-height: 1.6; }
+
+  /* ---------------- Footer ---------------- */
+  .foot {
+    margin-top: 80px; padding-top: 24px; border-top: 1px solid var(--stroke);
+    display: flex; justify-content: space-between; color: var(--ink-faint);
+    font-family: var(--mono); font-size: 11px;
+  }
+
+  /* ---------------- Responsive-ish ---------------- */
+  @media (max-width: 880px) {
+    .state-grid { grid-template-columns: repeat(2, 1fr); }
+    .twocol { grid-template-columns: 1fr; }
+    .roadmap { grid-template-columns: 1fr; }
+    .dw-body { grid-template-columns: 1fr; }
+    .dw-sidebar, .dw-right { display: none; }
+  }
+</style>
+</head>
+<body data-screen-label="01 FloatFocus 交付">
+<div class="page">
+
+  <!-- ============ Header ============ -->
+  <div class="head">
+    <div class="brand">
+      <div class="brand-dot"></div>
+      <h1>FloatFocus Timer <span class="v">v0.1 · MVP</span></h1>
+    </div>
+    <div class="meta">macOS · Windows · Electron</div>
+  </div>
+
+  <p class="lede">
+    一个<em>悬浮于所有窗口之上</em>的专注计时器 &mdash; 透明、可拖拽、
+    不需要时不打扰。
+  </p>
+  <p class="sub">
+    设计语言参考 Raycast 与 Apple 系统 UI。数字是主角，控件在鼠标悬停时才出现；
+    整个窗口可以切换为点击穿透状态，从不遮挡你正在阅读的内容。
+  </p>
+
+  <!-- ============ Hero stage ============ -->
+  <section>
+    <div class="sec-label">实时预览</div>
+    <h2 class="sec-title">可交互原型</h2>
+    <p class="sec-sub">任意拖拽计时器。使用面板切换不同状态，查看视觉变化。</p>
+
+    <div class="stage" id="stage">
+      <div class="stage-controls" id="stageControls">
+        <button data-act="start">开始</button>
+        <button data-act="pause">暂停</button>
+        <button data-act="reset">重置</button>
+        <div class="sep"></div>
+        <button data-preset="5">5分</button>
+        <button data-preset="25" class="is-on">25分</button>
+        <button data-preset="30">30分</button>
+        <div class="sep"></div>
+        <button data-act="through">点击穿透</button>
+        <button data-act="hover">强制悬停</button>
+      </div>
+
+      <!-- Faux desktop window so you can see "behind" the timer -->
+      <div class="desktop-window">
+        <div class="dw-bar">
+          <div class="traffic"><span></span><span></span><span></span></div>
+          <div class="dw-title">未命名 — 工作区</div>
+          <div style="width: 50px"></div>
+        </div>
+        <div class="dw-body">
+          <div class="dw-sidebar">
+            <div class="dw-stub m"></div>
+            <div class="dw-stub s"></div>
+            <div style="height: 18px"></div>
+            <div class="dw-stub dot m"></div>
+            <div class="dw-stub dot m"></div>
+            <div class="dw-stub dot s"></div>
+            <div class="dw-stub dot m"></div>
+            <div class="dw-stub dot s"></div>
+          </div>
+          <div class="dw-canvas">
+            <div class="ph"></div>
+            <div class="ph-label">[ 文档 / 网页 / 编辑器 — 计时器后面的内容 ]</div>
+          </div>
+          <div class="dw-right">
+            <div class="dw-stub s"></div>
+            <div class="dw-stub m"></div>
+            <div style="height: 18px"></div>
+            <div class="dw-stub m"></div>
+            <div class="dw-stub s"></div>
+            <div class="dw-stub m"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- The floating timer -->
+      <div class="timer" id="timer" style="left: 64%; top: 18%;">
+        <div class="timer-card">
+          <svg class="t-lock" viewBox="0 0 16 16"><path fill="currentColor" d="M8 1a3 3 0 0 0-3 3v2H4a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1h-1V4a3 3 0 0 0-3-3Zm-2 5V4a2 2 0 1 1 4 0v2H6Z"/></svg>
+          <div class="t-num" id="tNum">25:00</div>
+          <div class="t-controls">
+            <button class="t-btn" data-act="play" title="Start / Pause">
+              <svg viewBox="0 0 16 16" width="12" height="12"><path fill="currentColor" d="M4 3.5v9l8-4.5z"/></svg>
+            </button>
+            <button class="t-btn" data-act="reset" title="Reset">
+              <svg viewBox="0 0 16 16" width="12" height="12"><path fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" d="M3 8a5 5 0 1 0 1.6-3.7M3 3v2.5h2.5"/></svg>
+            </button>
+            <button class="t-btn" data-act="through" title="Toggle click-through">
+              <svg viewBox="0 0 16 16" width="12" height="12"><path fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" d="M3 8h10M9 4l4 4-4 4"/></svg>
+            </button>
+            <button class="t-btn" data-act="menu" title="More">
+              <svg viewBox="0 0 16 16" width="12" height="12"><circle fill="currentColor" cx="3.5" cy="8" r="1.2"/><circle fill="currentColor" cx="8" cy="8" r="1.2"/><circle fill="currentColor" cx="12.5" cy="8" r="1.2"/></svg>
+            </button>
+          </div>
+          <div class="t-progress"><div class="t-progress-fill" id="tFill"></div></div>
+        </div>
+      </div>
+
+      <div class="stage-hint">
+        <span>拖拽计时器 ↕</span>
+        <span>·</span>
+        <span>双击数字<kbd>开始/暂停</kbd></span>
+        <span>·</span>
+        <span>实际应用中全局快捷键 <kbd>⌘⇧T</kbd></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ States ============ -->
+  <section>
+    <div class="sec-label">状态</div>
+    <h2 class="sec-title">四种状态</h2>
+    <p class="sec-sub">每个场景只显示必要的元素。大多数时候，你看到的只是数字。</p>
+
+    <div class="state-grid">
+      <div class="state-card">
+        <div class="canvas">
+          <div class="timer">
+            <div class="timer-card">
+              <div class="t-num" style="font-size:44px;">25:00</div>
+            </div>
+          </div>
+        </div>
+        <div class="label"><strong>默认</strong>仅显示数字 · 可任意拖拽</div>
+      </div>
+      <div class="state-card">
+        <div class="canvas">
+          <div class="timer is-running">
+            <div class="timer-card">
+              <div class="t-num" style="font-size:44px;">12:34</div>
+              <div class="t-progress"><div class="t-progress-fill" style="width: 50%"></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="label"><strong>计时中</strong>底部细细的进度条</div>
+      </div>
+      <div class="state-card">
+        <div class="canvas">
+          <div class="timer force-hover">
+            <div class="timer-card">
+              <div class="t-num" style="font-size:44px; opacity:0.85;">12:34</div>
+              <div class="t-controls" style="opacity:1; pointer-events:auto; transform: translateX(-50%) translateY(0);">
+                <button class="t-btn"><svg viewBox="0 0 16 16" width="12" height="12"><path fill="currentColor" d="M4 3h2.5v10H4zm5.5 0H12v10H9.5z"/></svg></button>
+                <button class="t-btn"><svg viewBox="0 0 16 16" width="12" height="12"><path fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" d="M3 8a5 5 0 1 0 1.6-3.7M3 3v2.5h2.5"/></svg></button>
+                <button class="t-btn"><svg viewBox="0 0 16 16" width="12" height="12"><path fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" d="M3 8h10M9 4l4 4-4 4"/></svg></button>
+                <button class="t-btn"><svg viewBox="0 0 16 16" width="12" height="12"><circle fill="currentColor" cx="3.5" cy="8" r="1.2"/><circle fill="currentColor" cx="8" cy="8" r="1.2"/><circle fill="currentColor" cx="12.5" cy="8" r="1.2"/></svg></button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="label"><strong>鼠标悬停</strong>控件淡入</div>
+      </div>
+      <div class="state-card">
+        <div class="canvas">
+          <div class="timer is-through">
+            <div class="timer-card">
+              <svg class="t-lock" viewBox="0 0 16 16" style="opacity: 0.75"><path fill="currentColor" d="M8 1a3 3 0 0 0-3 3v2H4a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1h-1V4a3 3 0 0 0-3-3Zm-2 5V4a2 2 0 1 1 4 0v2H6Z"/></svg>
+              <div class="t-num" style="font-size:44px;">12:34</div>
+            </div>
+          </div>
+        </div>
+        <div class="label"><strong>点击穿透</strong>鼠标穿透 · 小锁提示</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Window flags ============ -->
+  <section>
+    <div class="sec-label">架构</div>
+    <h2 class="sec-title">让它“漂起来”的四个关键参数</h2>
+    <p class="sec-sub">大部分“魔法”都在 BrowserWindow 的配置上。渲染进程只是一个很小的网页。</p>
+
+    <div class="twocol">
+      <div class="card">
+        <h3>BrowserWindow 参数 <span class="pill">main.js</span></h3>
+        <p>这几个参数组合起来，把一个普通 Electron 窗口变成了无边框的悬浮控件。</p>
+        <dl class="kv">
+          <dt>frame</dt><dd><code>false</code> — 干掉标题栏与窗口装饰</dd>
+          <dt>transparent</dt><dd><code>true</code> — 使 CSS 中的 RGBA 生效</dd>
+          <dt>alwaysOnTop</dt><dd><code>true</code> + <code>'screen-saver'</code> 层级</dd>
+          <dt>resizable</dt><dd><code>false</code> — 固定尺寸</dd>
+          <dt>skipTaskbar</dt><dd><code>true</code> — 不出现在 Dock / 任务栏</dd>
+          <dt>hasShadow</dt><dd><code>false</code> — 阴影会暴露透明的边缘</dd>
+          <dt>setIgnoreMouseEvents</dt><dd>实现点击穿透，配合 <code>{forward:&nbsp;true}</code></dd>
+        </dl>
+      </div>
+      <div class="card">
+        <h3>进程模型 <span class="pill gray">3 个文件</span></h3>
+        <p>渲染进程不接触 Node。仅通过 preload 桥接暴露需要的 API。</p>
+        <dl class="kv">
+          <dt>main.js</dt><dd>管理窗口、全局快捷键、原生菜单</dd>
+          <dt>preload.js</dt><dd><code>contextBridge</code> → <code>window.floatFocus</code></dd>
+          <dt>renderer/</dt><dd>纯 HTML + CSS + 原生 JS，无框架</dd>
+          <dt>快捷键</dt><dd><code>globalShortcut.register</code> 注册 ⌘⇧T / Ctrl⇧T</dd>
+          <dt>右键菜单</dt><dd>IPC 触发 <code>Menu.popup()</code></dd>
+          <dt>“解锁”穿透</dt><dd>悬停热区时临时关闭 ignore，可被点击</dd>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Project structure ============ -->
+  <section>
+    <div class="sec-label">项目结构</div>
+    <h2 class="sec-title"><code style="font-family:var(--mono); font-size:14px; background:rgba(0,0,0,0.05); padding:2px 6px; border-radius:5px;">electron/</code> 目录下的文件</h2>
+    <p class="sec-sub">共 6 个文件。无打包器，无框架。</p>
+
+    <div class="tree">
+<span class="folder">electron/</span>
+├─ <span class="file">package.json</span>           <span class="desc"># 脚本与 electron-builder 配置</span>
+├─ <span class="file">main.js</span>                <span class="desc"># 窗口 + IPC + 全局快捷键 + 菜单</span>
+├─ <span class="file">preload.js</span>             <span class="desc"># contextBridge → window.floatFocus</span>
+├─ <span class="file">README.md</span>              <span class="desc"># 安装与打包说明</span>
+└─ <span class="folder">renderer/</span>
+&nbsp;&nbsp;&nbsp;├─ <span class="file">index.html</span>          <span class="desc"># DOM：卡片 · 数字 · 控件 · 进度 · 小锁</span>
+&nbsp;&nbsp;&nbsp;├─ <span class="file">style.css</span>           <span class="desc"># 磨砂玻璃 · hover 显现 · 深色适配</span>
+&nbsp;&nbsp;&nbsp;└─ <span class="file">script.js</span>           <span class="desc"># 计时逻辑 · 穿透的 hover 解锁</span>
+    </div>
+  </section>
+
+  <!-- ============ Source code viewer ============ -->
+  <section>
+    <div class="sec-label">源码</div>
+    <h2 class="sec-title">代码</h2>
+    <p class="sec-sub">切换顶部标签查看每个文件。每一行不明显的代码都有注释。</p>
+
+    <div class="code-tabs" id="codeTabs">
+      <button data-file="electron/main.js" class="active">main.js</button>
+      <button data-file="electron/preload.js">preload.js</button>
+      <button data-file="electron/renderer/index.html">renderer/index.html</button>
+      <button data-file="electron/renderer/style.css">renderer/style.css</button>
+      <button data-file="electron/renderer/script.js">renderer/script.js</button>
+      <button data-file="electron/package.json">package.json</button>
+    </div>
+    <div class="code-wrap"><pre id="codeView">Loading…</pre></div>
+  </section>
+
+  <!-- ============ Run ============ -->
+  <section>
+    <div class="sec-label">运行</div>
+    <h2 class="sec-title">本地安装与启动</h2>
+    <p class="sec-sub">无原生依赖；首次安装会下载 Electron 预编译二进制包（约 80 MB）。</p>
+
+    <div class="twocol">
+      <div>
+        <div class="term">
+<span class="p">$</span> <span class="cmd">cd electron</span>
+<span class="p">$</span> <span class="cmd">npm install</span>
+<span class="out">added 84 packages in 12s</span>
+
+<span class="p">$</span> <span class="cmd">npm start</span>
+<span class="out">› electron .</span>
+<span class="out">› 计时器已出现在右上角</span>
+        </div>
+      </div>
+      <div>
+        <div class="term">
+<span class="p"># 后期：打包为可安装程序</span>
+<span class="p">$</span> <span class="cmd">npm run build:mac</span>
+<span class="out">› dist/FloatFocus Timer.dmg</span>
+
+<span class="p">$</span> <span class="cmd">npm run build:win</span>
+<span class="out">› dist/FloatFocus Timer Setup.exe</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Key code walkthrough ============ -->
+  <section>
+    <div class="sec-label">详解</div>
+    <h2 class="sec-title">三个值得理解的点</h2>
+
+    <div class="twocol" style="grid-template-columns: 1fr 1fr 1fr;">
+      <div class="card">
+        <h3>① 悬浮窗口</h3>
+        <p style="font-size: 12.5px; color: var(--ink-soft); margin-bottom: 14px;">
+          组合 <code>transparent + frame:false + alwaysOnTop</code> 得到一个无装饰的 RGBA 画布，始终置顶；<code>'screen-saver'</code> 层级让它在全屏应用之上也可见。
+        </p>
+        <code style="display:block; background:rgba(0,0,0,0.04); padding:10px 12px; border-radius:8px; font-family:var(--mono); font-size:11.5px; color: var(--ink); line-height:1.6;">win.setAlwaysOnTop(true,<br>&nbsp;&nbsp;'screen-saver');<br>win.setVisibleOnAllWorkspaces(<br>&nbsp;&nbsp;true,<br>&nbsp;&nbsp;{ visibleOnFullScreen: true });</code>
+      </div>
+      <div class="card">
+        <h3>② 拖拽区域</h3>
+        <p style="font-size: 12.5px; color: var(--ink-soft); margin-bottom: 14px;">
+          卡片设 <code>-webkit-app-region: drag</code>，按钮用 <code>no-drag</code> 反选。不需要任何 JS 拖拽代码。
+        </p>
+        <code style="display:block; background:rgba(0,0,0,0.04); padding:10px 12px; border-radius:8px; font-family:var(--mono); font-size:11.5px; color: var(--ink); line-height:1.6;">.card {<br>&nbsp;&nbsp;-webkit-app-region: drag;<br>}<br>.controls {<br>&nbsp;&nbsp;-webkit-app-region: no-drag;<br>}</code>
+      </div>
+      <div class="card">
+        <h3>③ 穿透中“解锁”</h3>
+        <p style="font-size: 12.5px; color: var(--ink-soft); margin-bottom: 14px;">
+          <code>{forward: true}</code> 下，鼠标事件被忽略，但渲染进程仍能收到 <code>mouseenter</code>。我们用它在“解锁”区域临时反转 ignore。
+        </p>
+        <code style="display:block; background:rgba(0,0,0,0.04); padding:10px 12px; border-radius:8px; font-family:var(--mono); font-size:11.5px; color: var(--ink); line-height:1.6;">win.setIgnoreMouseEvents(<br>&nbsp;&nbsp;enabled,<br>&nbsp;&nbsp;{ forward: true }<br>);</code>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Roadmap ============ -->
+  <section>
+    <div class="sec-label">后续</div>
+    <h2 class="sec-title">MVP 之后</h2>
+    <p class="sec-sub">按“价值÷成本”大致排序的下一步。</p>
+
+    <div class="roadmap">
+      <div class="road-card"><div class="n">01</div><h4>边缘吸附</h4><p>磁吸到屏幕四个角 + 记住多屏位置。主进程用 <code>screen.getDisplayMatching</code> 约 50 行代码。</p></div>
+      <div class="road-card"><div class="n">02</div><h4>番茄钟套餐</h4><p>自动衔接专注 / 短休 / 长休，并记录数据。只需在渲染层写状态机，右键菜单暴露入口。</p></div>
+      <div class="road-card"><div class="n">03</div><h4>系统托盘图标</h4><p>隐藏计时器后仍可从托盘控制。<code>Tray</code> + 复用同一个菜单模板。</p></div>
+      <div class="road-card"><div class="n">04</div><h4>快捷键自定义</h4><p>重绑 ⌘⇧T，以及为开始 / 暂停 / +5min 加热键。设置用 <code>electron-store</code> 持久化。</p></div>
+      <div class="road-card"><div class="n">05</div><h4>主题预设</h4><p>深色玻璃 · 透明 · 不透明 · 色调。设置面板里实时预览。</p></div>
+      <div class="road-card"><div class="n">06</div><h4>自动更新与签名</h4><p>用 Developer ID 签 mac 应用，Windows 走 NSIS，通过 electron-updater 发布。</p></div>
+      <div class="road-card"><div class="n">07</div><h4>勿扰模式联动</h4><p>计时中自动开启系统 DND（mac 调 <code>shortcuts</code> CLI；win 改注心助手注册表）。</p></div>
+      <div class="road-card"><div class="n">08</div><h4>会话记录与洞察</h4><p>本地 SQLite 存专注记录，周结在顶部弹出。不上传任何数据。</p></div>
+      <div class="road-card"><div class="n">09</div><h4>多设备同步</h4><p>可选 iCloud / KV 同步预设与主题。端到端加密、默认关闭。</p></div>
+    </div>
+  </section>
+
+  <div class="foot">
+    <div>FloatFocus Timer · MVP 设计交付</div>
+    <div>基于 Electron 31 · 无追踪 · 本地运行</div>
+  </div>
+</div>
+
+<!-- ============ Embedded source for the code viewer ============ -->
+<script type="text/plain" id="src-electron/package.json">{
+  "name": "floatfocus-timer",
+  "version": "0.1.0",
+  "description": "A floating, transparent, always-on-top focus timer for macOS and Windows.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --enable-logging",
+    "build:mac": "electron-builder --mac",
+    "build:win": "electron-builder --win"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.floatfocus.timer",
+    "productName": "FloatFocus Timer",
+    "files": ["main.js", "preload.js", "renderer/**/*"],
+    "mac": { "category": "public.app-category.productivity" },
+    "win": { "target": "nsis" }
+  }
+}</script>
+
+<script>
+/* ================ Live timer prototype ================ */
+const timerEl  = document.getElementById('timer');
+const numEl    = document.getElementById('tNum');
+const fillEl   = document.getElementById('tFill');
+const stage    = document.getElementById('stage');
+const controls = document.getElementById('stageControls');
+
+let duration  = 25 * 60;
+let remaining = duration;
+let running   = false;
+let endAt     = 0;
+let raf       = null;
+const POMODORO_SEQUENCE_MINUTES = [25, 5, 25, 5, 25, 5, 25, 30];
+let pomodoroIndex = 0;
+
+function fmt(s) {
+  const m = Math.floor(s / 60).toString().padStart(2, '0');
+  const ss = Math.floor(s % 60).toString().padStart(2, '0');
+  return `${m}:${ss}`;
+}
+function render() {
+  numEl.textContent = fmt(remaining);
+  const pct = duration ? ((duration - remaining) / duration) * 100 : 0;
+  fillEl.style.width = pct + '%';
+  timerEl.classList.toggle('is-running', running);
+  timerEl.classList.toggle('is-paused', !running && remaining < duration && remaining > 0);
+  timerEl.classList.toggle('is-done', remaining === 0);
+  // Update play icon
+  const playBtn = timerEl.querySelector('[data-act="play"] svg');
+  if (playBtn) {
+    playBtn.innerHTML = running
+      ? '<path fill="currentColor" d="M4 3h2.5v10H4zm5.5 0H12v10H9.5z"/>'
+      : '<path fill="currentColor" d="M4 3.5v9l8-4.5z"/>';
+  }
+}
+function tick() {
+  if (!running) return;
+  remaining = Math.max(0, Math.round((endAt - Date.now()) / 1000));
+  render();
+  if (remaining === 0) {
+    running = false;
+    advancePomodoroDuration();
+    return;
+  }
+  raf = setTimeout(tick, 250);
+}
+function start() {
+  if (running || remaining <= 0) return;
+  running = true;
+  endAt = Date.now() + remaining * 1000;
+  tick();
+}
+function pause() {
+  running = false; clearTimeout(raf); render();
+}
+function reset() {
+  pause(); remaining = duration; render();
+}
+function getPomodoroIndex(min) {
+  const wholeMin = Math.round(min);
+  if (Math.abs(min - wholeMin) > 0.0001) return null;
+
+  const index = POMODORO_SEQUENCE_MINUTES.indexOf(wholeMin);
+  return index === -1 ? null : index;
+}
+function setDuration(min, options = {}) {
+  const normalizedMin = Math.max(1, Number(min) || 1);
+  duration = Math.max(1, Math.round(normalizedMin * 60));
+  if (options.syncPomodoro !== false) {
+    pomodoroIndex = getPomodoroIndex(normalizedMin);
+  }
+  reset();
+}
+function advancePomodoroDuration() {
+  if (pomodoroIndex === null) return false;
+
+  pomodoroIndex = (pomodoroIndex + 1) % POMODORO_SEQUENCE_MINUTES.length;
+  setDuration(POMODORO_SEQUENCE_MINUTES[pomodoroIndex], { syncPomodoro: false });
+  return true;
+}
+function setPreset(min) {
+  setDuration(min);
+  controls.querySelectorAll('[data-preset]').forEach(b =>
+    b.classList.toggle('is-on', Number(b.dataset.preset) === min));
+}
+
+/* ================ Click-through + force-hover toggles ================ */
+function toggleThrough() {
+  timerEl.classList.toggle('is-through');
+  const on = timerEl.classList.contains('is-through');
+  controls.querySelector('[data-act="through"]').classList.toggle('is-on', on);
+  const innerBtn = timerEl.querySelector('[data-act="through"]');
+  if (innerBtn) innerBtn.classList.toggle('on', on);
+}
+function toggleForceHover() {
+  timerEl.classList.toggle('force-hover');
+  controls.querySelector('[data-act="hover"]').classList.toggle('is-on', timerEl.classList.contains('force-hover'));
+}
+
+/* ================ Stage controls ================ */
+controls.addEventListener('click', (e) => {
+  const t = e.target.closest('button');
+  if (!t) return;
+  if (t.dataset.preset) return setPreset(Number(t.dataset.preset));
+  switch (t.dataset.act) {
+    case 'start':   return start();
+    case 'pause':   return pause();
+    case 'reset':   return reset();
+    case 'through': return toggleThrough();
+    case 'hover':   return toggleForceHover();
+  }
+});
+
+/* ================ In-timer controls ================ */
+timerEl.addEventListener('click', (e) => {
+  if (timerEl.classList.contains('is-through')) return;
+  const t = e.target.closest('.t-btn');
+  if (!t) return;
+  e.stopPropagation();
+  switch (t.dataset.act) {
+    case 'play':    return running ? pause() : start();
+    case 'reset':   return reset();
+    case 'through': return toggleThrough();
+    case 'menu':    return alert('Right-click menu in real app → presets, opacity, click-through, quit');
+  }
+});
+numEl.addEventListener('dblclick', () => running ? pause() : start());
+
+/* ================ Drag ================ */
+(function makeDraggable() {
+  let dragging = false, sx = 0, sy = 0, ox = 0, oy = 0;
+  timerEl.addEventListener('mousedown', (e) => {
+    if (timerEl.classList.contains('is-through')) return;
+    if (e.target.closest('.t-btn')) return;
+    dragging = true;
+    timerEl.classList.add('dragging');
+    const r = timerEl.getBoundingClientRect();
+    const sr = stage.getBoundingClientRect();
+    sx = e.clientX; sy = e.clientY;
+    ox = r.left - sr.left; oy = r.top - sr.top;
+    timerEl.style.left = ox + 'px';
+    timerEl.style.top  = oy + 'px';
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    const sr = stage.getBoundingClientRect();
+    let nx = ox + (e.clientX - sx);
+    let ny = oy + (e.clientY - sy);
+    nx = Math.max(8, Math.min(sr.width  - timerEl.offsetWidth  - 8, nx));
+    ny = Math.max(8, Math.min(sr.height - timerEl.offsetHeight - 8, ny));
+    timerEl.style.left = nx + 'px';
+    timerEl.style.top  = ny + 'px';
+  });
+  window.addEventListener('mouseup', () => {
+    dragging = false; timerEl.classList.remove('dragging');
+  });
+})();
+
+render();
+
+/* ================ Code viewer ================ */
+const tabs = document.getElementById('codeTabs');
+const view = document.getElementById('codeView');
+
+function escapeHTML(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// Very lightweight JS/CSS/HTML "highlighter" — comments + strings only, deterministic.
+function highlight(code, kind) {
+  let s = escapeHTML(code);
+  if (kind === 'js' || kind === 'json') {
+    // strings
+    s = s.replace(/(`[^`]*`|'[^'\n]*'|"[^"\n]*")/g, '<span class="s">$1</span>');
+    // line comments
+    s = s.replace(/(^|[^:])(\/\/[^\n]*)/g, '$1<span class="c">$2</span>');
+    // block comments (greedy across lines)
+    s = s.replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="c">$1</span>');
+    // keywords — exclude words that also appear as HTML attribute names in our own
+    // emitted spans (e.g. `class`), so we don't re-wrap them inside <span class="…">.
+    s = s.replace(/\b(const|let|var|function|return|if|else|for|while|new|require|import|from|export|async|await|true|false|null|undefined)\b/g, '<span class="k">$1</span>');
+  } else if (kind === 'css') {
+    s = s.replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="c">$1</span>');
+    s = s.replace(/("[^"\n]*"|'[^'\n]*')/g, '<span class="s">$1</span>');
+    s = s.replace(/(--[a-z0-9-]+)/g, '<span class="n">$1</span>');
+  } else if (kind === 'html') {
+    s = s.replace(/(&lt;!--[\s\S]*?--&gt;)/g, '<span class="c">$1</span>');
+    s = s.replace(/(&lt;\/?)([a-z0-9-]+)/gi, '$1<span class="f">$2</span>');
+    s = s.replace(/([a-z-]+)=(&quot;[^&]*&quot;)/gi, '<span class="n">$1</span>=<span class="s">$2</span>');
+  }
+  return s;
+}
+
+function kindFor(path) {
+  if (path.endsWith('.js')) return 'js';
+  if (path.endsWith('.json')) return 'json';
+  if (path.endsWith('.css')) return 'css';
+  if (path.endsWith('.html')) return 'html';
+  return 'js';
+}
+
+async function loadCode(path) {
+  // Prefer the embedded source script tag if present
+  const embedded = document.getElementById('src-' + path);
+  if (embedded) {
+    view.innerHTML = highlight(embedded.textContent, kindFor(path));
+    return;
+  }
+  // Otherwise fetch live from the project filesystem
+  try {
+    const res = await fetch(path);
+    if (!res.ok) throw new Error(res.status);
+    const txt = await res.text();
+    view.innerHTML = highlight(txt, kindFor(path));
+  } catch (err) {
+    view.textContent = `// Could not load ${path}\n// (${err.message}) — open the file directly in the project tree.`;
+  }
+}
+
+tabs.addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  tabs.querySelectorAll('button').forEach(x => x.classList.remove('active'));
+  b.classList.add('active');
+  loadCode(b.dataset.file);
+});
+
+loadCode('electron/main.js');
+</script>
+</body>
+</html>

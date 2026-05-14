@@ -1,0 +1,26 @@
+{
+  "name": "floatfocus-timer",
+  "version": "0.1.0",
+  "description": "A floating, transparent, always-on-top focus timer for macOS and Windows.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --enable-logging",
+    "build:mac": "electron-builder --mac",
+    "build:win": "electron-builder --win"
+  },
+  "keywords": ["focus", "timer", "pomodoro", "electron"],
+  "author": "FloatFocus",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.floatfocus.timer",
+    "productName": "FloatFocus Timer",
+    "files": ["main.js", "preload.js", "renderer/**/*"],
+    "mac": { "category": "public.app-category.productivity" },
+    "win": { "target": "nsis" }
+  }
+}

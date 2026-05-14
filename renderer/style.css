@@ -1,0 +1,453 @@
+/* FloatFocus Timer - soft glass reference style */
+
+:root {
+  --panel-rgb: 246, 248, 251;
+  --bg-alpha: 0.88;
+  --bg-hover-alpha: 0.96;
+  --panel: rgba(var(--panel-rgb), var(--bg-alpha));
+  --panel-hover: rgba(var(--panel-rgb), var(--bg-hover-alpha));
+  --ink: #263039;
+  --ink-soft: #75808a;
+  --muted: #aeb6bf;
+  --stroke: rgba(255, 255, 255, 0.72);
+  --shadow: rgba(28, 39, 50, 0.18);
+  --inner-shadow: rgba(91, 103, 116, 0.11);
+  --accent: #4f6375;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --panel-rgb: 40, 45, 51;
+    --ink: #eef2f6;
+    --ink-soft: #aab4bf;
+    --muted: #7c8792;
+    --stroke: rgba(255, 255, 255, 0.12);
+    --shadow: rgba(0, 0, 0, 0.34);
+    --inner-shadow: rgba(255, 255, 255, 0.06);
+    --accent: #9fb0bf;
+  }
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+button,
+input,
+.no-drag,
+.duration-editor {
+  app-region: no-drag;
+  -webkit-app-region: no-drag;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+  color: var(--ink);
+  font-family: "Avenir Next", "Trebuchet MS", "Segoe UI", sans-serif;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+  app-region: no-drag;
+  -webkit-app-region: no-drag;
+}
+
+body {
+  padding: 6px;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.card {
+  position: relative;
+  z-index: 0;
+  width: 100%;
+  height: calc(100vh - 12px);
+  display: grid;
+  grid-template-rows: 38px 1fr 42px;
+  overflow: hidden;
+  border: 1px solid var(--stroke);
+  border-radius: 17px;
+  background:
+    radial-gradient(circle at 15% 9%, rgba(255,255,255,0.95), rgba(255,255,255,0) 26%),
+    radial-gradient(circle at 82% 14%, rgba(255,255,255,0.72), rgba(255,255,255,0) 24%),
+    linear-gradient(145deg, rgba(255,255,255,0.78), rgba(220,225,231,0.44)),
+    var(--panel);
+  backdrop-filter: blur(24px) saturate(128%);
+  -webkit-backdrop-filter: blur(24px) saturate(128%);
+  box-shadow:
+    inset 5px 6px 14px rgba(255,255,255,0.82),
+    inset -7px -9px 16px var(--inner-shadow),
+    0 12px 22px var(--shadow),
+    0 2px 4px rgba(255,255,255,0.62);
+  cursor: grab;
+  transition: background 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+  app-region: no-drag;
+  -webkit-app-region: no-drag;
+}
+
+.card:hover,
+.card.is-hovering {
+  background:
+    radial-gradient(circle at 15% 9%, rgba(255,255,255,1), rgba(255,255,255,0) 28%),
+    radial-gradient(circle at 82% 14%, rgba(255,255,255,0.82), rgba(255,255,255,0) 26%),
+    linear-gradient(145deg, rgba(255,255,255,0.86), rgba(226,231,236,0.52)),
+    var(--panel-hover);
+}
+
+.card.is-dragging,
+.card.is-dragging .drag-layer {
+  cursor: grabbing;
+}
+
+.drag-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  cursor: grab;
+  touch-action: none;
+  app-region: no-drag;
+  -webkit-app-region: no-drag;
+}
+
+.topbar {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 16px 0 15px;
+  pointer-events: none;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.drag-dots {
+  display: grid;
+  grid-template-columns: repeat(3, 4px);
+  grid-auto-rows: 4px;
+  gap: 4px;
+  color: var(--muted);
+  opacity: 0.78;
+  filter: drop-shadow(0 1px 1px rgba(255,255,255,0.55));
+}
+
+.drag-dots span {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.title {
+  color: var(--ink);
+  font-family: "Comic Sans MS", "Trebuchet MS", "Segoe UI", sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  text-shadow: 0 2px 2px rgba(255,255,255,0.78);
+}
+
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: auto;
+}
+
+.icon-btn,
+.btn,
+.preset,
+.duration-row button {
+  border: 0;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.icon-btn {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 11px;
+  background: rgba(255,255,255,0.38);
+  box-shadow:
+    inset 3px 3px 6px rgba(255,255,255,0.72),
+    inset -3px -3px 6px rgba(142,153,166,0.10),
+    0 5px 11px rgba(52,65,80,0.06);
+  transition: color 0.14s ease, background 0.14s ease, transform 0.14s ease;
+}
+
+.icon-btn:hover,
+.icon-btn.is-on {
+  color: var(--ink);
+  background: rgba(255,255,255,0.58);
+  transform: translateY(-1px);
+}
+
+.icon-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.lock {
+  position: absolute;
+  top: 43px;
+  right: 18px;
+  z-index: 3;
+  color: var(--accent);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease;
+}
+
+.card.is-through .lock {
+  opacity: 0.62;
+}
+
+.time {
+  position: relative;
+  z-index: 2;
+  align-self: center;
+  justify-self: center;
+  color: var(--ink);
+  font-family: "Arial Rounded MT Bold", "Avenir Next", "Trebuchet MS", sans-serif;
+  font-size: 63px;
+  font-weight: 900;
+  line-height: 0.92;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  text-shadow:
+    0 1px 0 rgba(255,255,255,0.92),
+    0 4px 8px rgba(42,52,62,0.10);
+  pointer-events: none;
+  transition: opacity 0.18s ease, color 0.18s ease;
+}
+
+.card[data-state="done"] .time {
+  color: #41596d;
+}
+
+.card:hover .time,
+.card.is-hovering .time {
+  opacity: 0.96;
+}
+
+.bottom-panel {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: 1fr 1px 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px 11px 12px;
+  pointer-events: auto;
+}
+
+.presets {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  align-items: center;
+  gap: 6px;
+}
+
+.preset {
+  height: 24px;
+  min-width: 0;
+  border-radius: 9px;
+  background: transparent;
+  font-family: "Comic Sans MS", "Trebuchet MS", "Segoe UI", sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  text-shadow: 0 1px 1px rgba(255,255,255,0.72);
+  transition: color 0.14s ease, background 0.14s ease, box-shadow 0.14s ease, transform 0.14s ease;
+}
+
+.preset:hover,
+.preset.is-active {
+  color: var(--ink);
+  background: rgba(255,255,255,0.58);
+  box-shadow:
+    inset 2px 3px 5px rgba(255,255,255,0.78),
+    inset -2px -3px 5px rgba(121,133,145,0.10),
+    0 5px 10px rgba(58,70,84,0.06);
+}
+
+.divider {
+  width: 1px;
+  height: 22px;
+  border-radius: 1px;
+  background: rgba(133,144,154,0.42);
+  box-shadow: 1px 0 0 rgba(255,255,255,0.54);
+}
+
+.controls {
+  height: 29px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  align-items: center;
+  gap: 3px;
+  padding: 4px 4px;
+  border-radius: 11px;
+  background: rgba(255,255,255,0.42);
+  box-shadow:
+    inset 4px 4px 8px rgba(255,255,255,0.68),
+    inset -4px -4px 8px rgba(134,145,158,0.10),
+    0 7px 13px rgba(48,60,74,0.06);
+}
+
+.btn {
+  width: 20px;
+  height: 20px;
+  justify-self: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-soft);
+  transition: color 0.14s ease, background 0.14s ease, transform 0.14s ease;
+}
+
+.btn:hover,
+.btn.is-on {
+  color: var(--ink);
+  background: rgba(255,255,255,0.42);
+  transform: translateY(-1px);
+}
+
+.btn svg {
+  width: 17px;
+  height: 17px;
+}
+
+#btn-through.is-on {
+  color: var(--accent);
+}
+
+.progress {
+  position: absolute;
+  left: 23px;
+  right: 23px;
+  bottom: 5px;
+  z-index: 4;
+  height: 2px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: rgba(112,125,137,0.12);
+  pointer-events: none;
+}
+
+.progress-fill {
+  width: 0%;
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, rgba(62,77,90,0.72), rgba(62,77,90,0.28));
+  transition: width 0.4s linear;
+}
+
+.toast {
+  position: fixed;
+  inset: 9px;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--stroke);
+  border-radius: 14px;
+  background: var(--panel-hover);
+  box-shadow:
+    inset 4px 5px 11px rgba(255,255,255,0.72),
+    0 9px 17px rgba(29,40,52,0.16);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  app-region: no-drag;
+  -webkit-app-region: no-drag;
+}
+
+.toast.is-on {
+  opacity: 1;
+}
+
+.toast-title {
+  color: var(--ink);
+  font-family: "Comic Sans MS", "Trebuchet MS", sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.toast-sub {
+  margin-top: 2px;
+  color: var(--ink-soft);
+  font-size: 11px;
+}
+
+.duration-editor {
+  position: fixed;
+  inset: 32px 39px;
+  z-index: 9;
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  padding: 11px;
+  border: 1px solid var(--stroke);
+  border-radius: 13px;
+  background: var(--panel-hover);
+  box-shadow:
+    inset 4px 5px 10px rgba(255,255,255,0.72),
+    0 9px 17px rgba(29,40,52,0.16);
+}
+
+.duration-editor.is-on {
+  display: flex;
+}
+
+.duration-editor label {
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.duration-row {
+  display: grid;
+  grid-template-columns: 39px 1fr 1fr;
+  gap: 5px;
+}
+
+.duration-row input,
+.duration-row button {
+  min-width: 0;
+  height: 22px;
+  border: 1px solid rgba(117,128,138,0.16);
+  border-radius: 7px;
+  background: rgba(255,255,255,0.52);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  outline: none;
+  box-shadow: inset 2px 2px 4px rgba(255,255,255,0.7);
+}
+
+.duration-row button:hover {
+  background: rgba(255,255,255,0.72);
+}
