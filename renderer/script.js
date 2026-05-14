@@ -29,7 +29,8 @@ let tickHandle  = null;
 let pomodoroIndex = 0;
 let clickThrough = false;
 let suppressNextDoubleClick = false;
-let hoverUnlocked = false;
+let pointerUnlocked = false;
+let lastPointerPoint = null;
 let dragState = null;
 
 // ---- Render ----
@@ -164,10 +165,35 @@ function finish() {
 }
 
 // ---- Click-through ----
-function setHoverUnlocked(on) {
-  hoverUnlocked = !!on;
-  card.classList.toggle('is-hovering', hoverUnlocked);
-  api.setPointerUnlocked && api.setPointerUnlocked(clickThrough && hoverUnlocked);
+function pointInRect(point, rect, padding = 0) {
+  return point &&
+    point.x >= rect.left - padding &&
+    point.x <= rect.right + padding &&
+    point.y >= rect.top - padding &&
+    point.y <= rect.bottom + padding;
+}
+
+function isUnlockHotspot(point) {
+  const topActions = document.querySelector('.top-actions');
+  return topActions && pointInRect(point, topActions.getBoundingClientRect(), 8);
+}
+
+function setPointerUnlocked(on) {
+  const next = !!on;
+  if (pointerUnlocked === next) return;
+
+  pointerUnlocked = next;
+  card.classList.toggle('is-hovering', clickThrough && pointerUnlocked);
+  api.setPointerUnlocked && api.setPointerUnlocked(clickThrough && pointerUnlocked);
+}
+
+function updatePointerUnlock(point = lastPointerPoint) {
+  if (!clickThrough) {
+    setPointerUnlocked(false);
+    return;
+  }
+
+  setPointerUnlocked(isUnlockHotspot(point));
 }
 
 function setClickThrough(on, options = {}) {
@@ -176,12 +202,7 @@ function setClickThrough(on, options = {}) {
   btnThrough.classList.toggle('is-on', clickThrough);
   btnPin.classList.toggle('is-on', clickThrough);
   if (options.sync !== false) api.setClickThrough && api.setClickThrough(clickThrough);
-
-  if (clickThrough && card.matches(':hover')) {
-    setHoverUnlocked(true);
-  } else {
-    setHoverUnlocked(false);
-  }
+  updatePointerUnlock(options.point || lastPointerPoint);
 }
 
 function isInteractiveTarget(target) {
@@ -235,7 +256,6 @@ function endDrag(event) {
   dragState = null;
   card.classList.remove('is-dragging');
   api.endWindowDrag && api.endWindowDrag();
-  if (clickThrough && hoverUnlocked) api.setPointerUnlocked && api.setPointerUnlocked(true);
 
   if (moved) {
     setTimeout(() => { suppressNextDoubleClick = false; }, 250);
@@ -246,8 +266,12 @@ function endDrag(event) {
 btnPlay.addEventListener('click',   () => start());
 btnPause.addEventListener('click',  () => pause());
 btnReset.addEventListener('click',  () => reset());
-btnThrough.addEventListener('click', () => setClickThrough(!clickThrough));
-btnPin.addEventListener('click', () => setClickThrough(!clickThrough));
+btnThrough.addEventListener('click', (event) => setClickThrough(!clickThrough, {
+  point: { x: event.clientX, y: event.clientY },
+}));
+btnPin.addEventListener('click', (event) => setClickThrough(!clickThrough, {
+  point: { x: event.clientX, y: event.clientY },
+}));
 btnMenu.addEventListener('click',   () => api.showContextMenu && api.showContextMenu());
 presetButtons.forEach((button) => {
   button.addEventListener('click', () => setDuration(Number(button.dataset.preset)));
@@ -259,15 +283,14 @@ durationInput.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') closeCustomDuration();
 });
 
-card.addEventListener('mouseenter', () => {
-  if (clickThrough) setHoverUnlocked(true);
-});
-window.addEventListener('mousemove', () => {
-  if (clickThrough && !hoverUnlocked) setHoverUnlocked(true);
+window.addEventListener('mousemove', (event) => {
+  lastPointerPoint = { x: event.clientX, y: event.clientY };
+  updatePointerUnlock(lastPointerPoint);
 }, { passive: true });
-card.addEventListener('mouseleave', () => {
-  if (!dragState) setHoverUnlocked(false);
-});
+window.addEventListener('mouseleave', () => {
+  lastPointerPoint = null;
+  updatePointerUnlock(null);
+}, { passive: true });
 
 card.addEventListener('pointerdown', beginDrag);
 window.addEventListener('pointermove', dragWindow);

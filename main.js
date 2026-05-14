@@ -181,10 +181,14 @@ function setPointerUnlocked(enabled) {
 
 function applyMouseEventsPolicy() {
   if (!win) return;
-  // forward:true still lets the renderer receive mousemove while click-through is active,
-  // so hover can temporarily unlock the widget for dragging and controls.
+  // While click-through is active, forward mousemove so the renderer can unlock
+  // only the small top-right control hotspot.
   const shouldIgnore = state.clickThrough && !pointerUnlocked && !dragOffset;
-  win.setIgnoreMouseEvents(shouldIgnore, { forward: true });
+  if (shouldIgnore) {
+    win.setIgnoreMouseEvents(true, { forward: true });
+  } else {
+    win.setIgnoreMouseEvents(false);
+  }
 }
 
 // --- IPC bridge from renderer ---
@@ -200,7 +204,6 @@ ipcMain.on('window:drag-start', (_e, offset) => {
     x: Math.max(0, Math.min(WINDOW_WIDTH, x)),
     y: Math.max(0, Math.min(WINDOW_HEIGHT, y)),
   };
-  pointerUnlocked = true;
   applyMouseEventsPolicy();
   dragWindowToCursor();
 });

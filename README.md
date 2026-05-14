@@ -68,7 +68,7 @@ npm run build:win
 - 右键：选择时间、设置背景透明度、切换点击穿透、退出
 - `Ctrl+Shift+T`：切换点击穿透
 
-点击穿透开启后，鼠标点击会穿过计时器，直接操作后面的窗口。鼠标移到计时器上会临时显示控件并解锁拖动；也可以再按一次 `Ctrl+Shift+T` 关闭穿透。
+点击穿透开启后，主体区域的鼠标点击会穿过计时器，直接操作后面的窗口。需要再次操作计时器时，把鼠标移到右上角图钉或设置按钮区域，点击图钉关闭穿透；也可以按 `Ctrl+Shift+T` 切换。
 
 ## 项目结构
 
@@ -92,7 +92,7 @@ electron/
 ## 关键实现
 
 - `BrowserWindow` 使用 `transparent: true`、`frame: false`、`alwaysOnTop: true` 实现透明无边框置顶窗口。
-- `win.setIgnoreMouseEvents(true, { forward: true })` 实现点击穿透。
+- `win.setIgnoreMouseEvents(true, { forward: true })` 实现点击穿透，并让右上角控制区可以临时解锁。
 - `globalShortcut` 注册 `Ctrl+Shift+T` 作为全局穿透开关。
 - renderer 通过 IPC 手动拖动窗口，避免 Electron 拖拽区域吞掉双击事件。
 - 背景透明度通过 CSS 变量调整，文字保持清晰。
