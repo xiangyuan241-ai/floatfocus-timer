@@ -1,7 +1,62 @@
 # FloatFocus Timer
 
-桌面端悬浮专注倒计时器。目标是始终显示在屏幕上方，但尽量不遮挡正在看的网页、文档、PPT 或代码。
+一个悬浮在桌面上的透明专注计时器。适合写作、看课件、刷文档、写代码时放在屏幕角落，既能一直看到剩余时间，又不会挡住正在看的内容。
 
+![FloatFocus Timer preview](assets/readme-preview.svg)
+
+## 功能亮点
+
+- 悬浮置顶：始终显示在其他窗口上方。
+- 透明背景：右键菜单可调 `20% / 40% / 60% / 80% / 100%`。
+- 番茄钟循环：`25 -> 5 -> 25 -> 5 -> 25 -> 5 -> 25 -> 30`，每段结束后停住，需要手动点开始。
+- 点击穿透：开启后鼠标可以直接操作计时器后面的窗口。
+- 快捷操作：双击时间开始/暂停，拖动窗口任意移动。
+- 桌面快捷方式：Windows 用户可以创建桌面图标，双击启动。
+
+## Windows 用户怎么使用
+
+### 方法一：下载源码后创建桌面快捷方式
+
+1. 点击 GitHub 页面右上角的 `Code`。
+2. 选择 `Download ZIP`。
+3. 解压到你想保存的位置。
+4. 双击运行：
+
+```text
+Install-FloatFocusTimer.cmd
+```
+
+脚本会自动安装依赖，并在桌面创建：
+
+```text
+FloatFocus Timer
+```
+
+以后直接双击桌面图标即可使用。
+
+如果脚本提示找不到 `node` 或 `npm`，先安装 Node.js LTS：  
+https://nodejs.org/
+
+### 方法二：使用安装包
+
+如果仓库右侧 `Releases` 有 Windows 安装包，下载 `FloatFocus Timer Setup ...exe` 后安装即可。安装器会自动创建桌面快捷方式。
+
+## 开发者运行
+
+```powershell
+git clone https://github.com/xiangyuan241-ai/floatfocus-timer.git
+cd floatfocus-timer
+npm install
+npm start
+```
+
+## 打包 Windows 安装包
+
+```powershell
+npm run build:win
+```
+
+打包结果会生成在 `dist` 目录。Windows 安装器会自动创建桌面快捷方式和开始菜单快捷方式。
 
 ## 使用方式
 
@@ -15,25 +70,23 @@
 
 点击穿透开启后，鼠标点击会穿过计时器，直接操作后面的窗口。鼠标移到计时器上会临时显示控件并解锁拖动；也可以再按一次 `Ctrl+Shift+T` 关闭穿透。
 
-## 打包
-
-```powershell
-npm run build:win
-```
-
-打包结果会生成在 `dist` 目录。
-
 ## 项目结构
 
 ```text
 electron/
-  main.js
-  preload.js
-  package.json
+  main.js                         Electron 主进程，负责窗口、菜单、快捷键
+  preload.js                      主进程和页面之间的安全桥接
   renderer/
-    index.html
-    style.css
-    script.js
+    index.html                    计时器界面结构
+    style.css                     透明玻璃外观
+    script.js                     计时器和番茄钟逻辑
+  assets/
+    FloatFocusTimer.ico           应用图标
+    readme-preview.svg            README 预览图
+  tools/
+    Install-FloatFocusTimer.ps1   安装依赖并创建桌面快捷方式
+    Create-DesktopShortcut.ps1    创建桌面快捷方式
+    Start-FloatFocusTimer.vbs     隐藏命令行窗口启动应用
 ```
 
 ## 关键实现

@@ -96,11 +96,13 @@ if (-not (Test-Path $launcherPath)) {
     throw "Launcher not found: $launcherPath"
 }
 
-try {
-    New-FloatFocusIcon -Path $iconPath
-} catch {
-    Write-Warning "Could not generate custom icon. The shortcut will use Electron's default icon. $($_.Exception.Message)"
-    $iconPath = Join-Path $projectRoot 'node_modules\electron\dist\electron.exe'
+if (-not (Test-Path $iconPath)) {
+    try {
+        New-FloatFocusIcon -Path $iconPath
+    } catch {
+        Write-Warning "Could not generate custom icon. The shortcut will use Electron's default icon. $($_.Exception.Message)"
+        $iconPath = Join-Path $projectRoot 'node_modules\electron\dist\electron.exe'
+    }
 }
 
 $wscriptPath = Join-Path $env:WINDIR 'System32\wscript.exe'

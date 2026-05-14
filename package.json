@@ -6,6 +6,8 @@
   "scripts": {
     "start": "electron .",
     "dev": "electron . --enable-logging",
+    "setup:win": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/Install-FloatFocusTimer.ps1",
+    "shortcut:win": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/Create-DesktopShortcut.ps1",
     "build:mac": "electron-builder --mac",
     "build:win": "electron-builder --win"
   },
@@ -19,8 +21,18 @@
   "build": {
     "appId": "com.floatfocus.timer",
     "productName": "FloatFocus Timer",
-    "files": ["main.js", "preload.js", "renderer/**/*"],
+    "files": ["main.js", "preload.js", "renderer/**/*", "assets/**/*"],
     "mac": { "category": "public.app-category.productivity" },
-    "win": { "target": "nsis" }
+    "win": {
+      "target": "nsis",
+      "icon": "assets/FloatFocusTimer.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "FloatFocus Timer"
+    }
   }
 }
