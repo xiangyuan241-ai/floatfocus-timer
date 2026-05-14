@@ -52,8 +52,19 @@ function render() {
 
 function applyOpacity(value) {
   const opacity = Math.max(0.2, Math.min(1, Number(value) || 0.8));
+  const hoverOpacity = Math.min(1, opacity + 0.12);
   document.documentElement.style.setProperty('--bg-alpha', opacity.toString());
-  document.documentElement.style.setProperty('--bg-hover-alpha', Math.min(1, opacity + 0.12).toString());
+  document.documentElement.style.setProperty('--bg-hover-alpha', hoverOpacity.toString());
+  document.documentElement.style.setProperty('--shine-strong-alpha', (0.95 * opacity).toString());
+  document.documentElement.style.setProperty('--shine-soft-alpha', (0.72 * opacity).toString());
+  document.documentElement.style.setProperty('--wash-start-alpha', (0.78 * opacity).toString());
+  document.documentElement.style.setProperty('--wash-end-alpha', (0.44 * opacity).toString());
+  document.documentElement.style.setProperty('--shine-hover-strong-alpha', hoverOpacity.toString());
+  document.documentElement.style.setProperty('--shine-hover-soft-alpha', (0.82 * hoverOpacity).toString());
+  document.documentElement.style.setProperty('--wash-hover-start-alpha', (0.86 * hoverOpacity).toString());
+  document.documentElement.style.setProperty('--wash-hover-end-alpha', (0.52 * hoverOpacity).toString());
+  document.documentElement.style.setProperty('--control-bg-alpha', (0.42 * opacity).toString());
+  document.documentElement.style.setProperty('--control-hover-alpha', (0.58 * hoverOpacity).toString());
 }
 
 // ---- Timer ----

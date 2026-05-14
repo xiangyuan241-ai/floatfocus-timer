@@ -4,6 +4,16 @@
   --panel-rgb: 246, 248, 251;
   --bg-alpha: 0.88;
   --bg-hover-alpha: 0.96;
+  --shine-strong-alpha: 0.76;
+  --shine-soft-alpha: 0.58;
+  --wash-start-alpha: 0.62;
+  --wash-end-alpha: 0.35;
+  --shine-hover-strong-alpha: 0.92;
+  --shine-hover-soft-alpha: 0.75;
+  --wash-hover-start-alpha: 0.79;
+  --wash-hover-end-alpha: 0.48;
+  --control-bg-alpha: 0.34;
+  --control-hover-alpha: 0.53;
   --panel: rgba(var(--panel-rgb), var(--bg-alpha));
   --panel-hover: rgba(var(--panel-rgb), var(--bg-hover-alpha));
   --ink: #263039;
@@ -76,9 +86,9 @@ input {
   border: 1px solid var(--stroke);
   border-radius: 17px;
   background:
-    radial-gradient(circle at 15% 9%, rgba(255,255,255,0.95), rgba(255,255,255,0) 26%),
-    radial-gradient(circle at 82% 14%, rgba(255,255,255,0.72), rgba(255,255,255,0) 24%),
-    linear-gradient(145deg, rgba(255,255,255,0.78), rgba(220,225,231,0.44)),
+    radial-gradient(circle at 15% 9%, rgba(255,255,255,var(--shine-strong-alpha)), rgba(255,255,255,0) 26%),
+    radial-gradient(circle at 82% 14%, rgba(255,255,255,var(--shine-soft-alpha)), rgba(255,255,255,0) 24%),
+    linear-gradient(145deg, rgba(255,255,255,var(--wash-start-alpha)), rgba(220,225,231,var(--wash-end-alpha))),
     var(--panel);
   backdrop-filter: blur(24px) saturate(128%);
   -webkit-backdrop-filter: blur(24px) saturate(128%);
@@ -96,9 +106,9 @@ input {
 .card:hover,
 .card.is-hovering {
   background:
-    radial-gradient(circle at 15% 9%, rgba(255,255,255,1), rgba(255,255,255,0) 28%),
-    radial-gradient(circle at 82% 14%, rgba(255,255,255,0.82), rgba(255,255,255,0) 26%),
-    linear-gradient(145deg, rgba(255,255,255,0.86), rgba(226,231,236,0.52)),
+    radial-gradient(circle at 15% 9%, rgba(255,255,255,var(--shine-hover-strong-alpha)), rgba(255,255,255,0) 28%),
+    radial-gradient(circle at 82% 14%, rgba(255,255,255,var(--shine-hover-soft-alpha)), rgba(255,255,255,0) 26%),
+    linear-gradient(145deg, rgba(255,255,255,var(--wash-hover-start-alpha)), rgba(226,231,236,var(--wash-hover-end-alpha))),
     var(--panel-hover);
 }
 
@@ -183,7 +193,7 @@ input {
   align-items: center;
   justify-content: center;
   border-radius: 11px;
-  background: rgba(255,255,255,0.38);
+  background: rgba(255,255,255,var(--control-bg-alpha));
   box-shadow:
     inset 3px 3px 6px rgba(255,255,255,0.72),
     inset -3px -3px 6px rgba(142,153,166,0.10),
@@ -194,7 +204,7 @@ input {
 .icon-btn:hover,
 .icon-btn.is-on {
   color: var(--ink);
-  background: rgba(255,255,255,0.58);
+  background: rgba(255,255,255,var(--control-hover-alpha));
   transform: translateY(-1px);
 }
 
@@ -282,7 +292,7 @@ input {
 .preset:hover,
 .preset.is-active {
   color: var(--ink);
-  background: rgba(255,255,255,0.58);
+  background: rgba(255,255,255,var(--control-hover-alpha));
   box-shadow:
     inset 2px 3px 5px rgba(255,255,255,0.78),
     inset -2px -3px 5px rgba(121,133,145,0.10),
@@ -305,7 +315,7 @@ input {
   gap: 3px;
   padding: 4px 4px;
   border-radius: 11px;
-  background: rgba(255,255,255,0.42);
+  background: rgba(255,255,255,var(--control-bg-alpha));
   box-shadow:
     inset 4px 4px 8px rgba(255,255,255,0.68),
     inset -4px -4px 8px rgba(134,145,158,0.10),
@@ -328,7 +338,7 @@ input {
 .btn:hover,
 .btn.is-on {
   color: var(--ink);
-  background: rgba(255,255,255,0.42);
+  background: rgba(255,255,255,var(--control-bg-alpha));
   transform: translateY(-1px);
 }
 
