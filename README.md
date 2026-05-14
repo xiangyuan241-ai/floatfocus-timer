@@ -2,22 +2,6 @@
 
 桌面端悬浮专注倒计时器。目标是始终显示在屏幕上方，但尽量不遮挡正在看的网页、文档、PPT 或代码。
 
-## 本地运行
-
-```powershell
-cd "C:\学校\claude\time\_\electron"
-npm install
-npm start
-```
-
-如果 Electron 下载超时，可以使用镜像：
-
-```powershell
-cd "C:\学校\claude\time\_\electron"
-$env:ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/"
-npm install
-npm start
-```
 
 ## 使用方式
 
