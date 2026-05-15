@@ -10,27 +10,9 @@ permissions:
   contents: write
 
 jobs:
-  build:
-    name: Build ${{ matrix.name }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: Windows
-            os: windows-latest
-            script: build:win
-            artifact_name: FloatFocus Timer Windows
-            artifact_path: |
-              dist/*.exe
-              dist/*.blockmap
-          - name: macOS
-            os: macos-latest
-            script: build:mac
-            artifact_name: FloatFocus Timer macOS
-            artifact_path: |
-              dist/*.dmg
-              dist/*.zip
+  build_macos:
+    name: Build macOS
+    runs-on: macos-13
 
     steps:
       - name: Check out repository
@@ -46,21 +28,56 @@ jobs:
         run: npm ci
 
       - name: Build app
-        run: npm run ${{ matrix.script }}
+        run: npm run build:mac
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
 
-      - name: Upload build artifact
+      - name: Upload macOS artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact_name }}
-          path: ${{ matrix.artifact_path }}
+          name: FloatFocus Timer macOS
+          path: |
+            dist/*.dmg
+            dist/*.zip
+          if-no-files-found: error
+
+  build_windows:
+    name: Build Windows
+    runs-on: windows-2022
+    continue-on-error: true
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build app
+        run: npm run build:win
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Upload Windows artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: FloatFocus Timer Windows
+          path: |
+            dist/*.exe
+            dist/*.blockmap
           if-no-files-found: error
 
   release:
     name: Publish GitHub Release
     if: startsWith(github.ref, 'refs/tags/')
-    needs: build
+    needs: build_macos
     runs-on: ubuntu-latest
 
     steps:

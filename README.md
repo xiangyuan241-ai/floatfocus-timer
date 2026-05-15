@@ -110,7 +110,7 @@ npm ci
 npm run build:mac
 ```
 
-打包结果会生成在 `dist` 目录，包括 `.dmg` 和 `.zip`，并分别输出 `x64` / `arm64` 架构。
+打包结果会生成在 `dist` 目录，包括 `.dmg` 和 `.zip`。GitHub Actions 默认输出 Intel `x64` 版本；Apple Silicon 机器可通过 Rosetta 运行，源码安装方式会使用本机架构。
 
 ## 自动构建 Windows / macOS
 

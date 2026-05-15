@@ -1,6 +1,6 @@
 {
   "name": "floatfocus-timer",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A floating, transparent, always-on-top focus timer for macOS and Windows.",
   "main": "main.js",
   "scripts": {
@@ -9,7 +9,7 @@
     "setup:mac": "bash tools/Install-FloatFocusTimer.command",
     "setup:win": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/Install-FloatFocusTimer.ps1",
     "shortcut:win": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/Create-DesktopShortcut.ps1",
-    "build:mac": "electron-builder --mac --x64 --arm64",
+    "build:mac": "electron-builder --mac dmg zip --x64",
     "build:mac:dir": "electron-builder --mac dir",
     "build:win": "electron-builder --win"
   },
@@ -32,7 +32,7 @@
     "dmg": {
       "backgroundColor": "#f6f8fb",
       "contents": [
-        { "x": 130, "y": 220, "type": "file" },
+        { "x": 130, "y": 220 },
         { "x": 410, "y": 220, "type": "link", "path": "/Applications" }
       ]
     },
