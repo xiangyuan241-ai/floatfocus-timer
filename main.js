@@ -740,6 +740,10 @@ ipcMain.handle('menu:show', (event) => {
 
 app.whenReady().then(createWindow);
 
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) createWindow();
+});
+
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
 });

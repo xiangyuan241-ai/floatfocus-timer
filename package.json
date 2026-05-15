@@ -6,9 +6,11 @@
   "scripts": {
     "start": "electron .",
     "dev": "electron . --enable-logging",
+    "setup:mac": "bash tools/Install-FloatFocusTimer.command",
     "setup:win": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/Install-FloatFocusTimer.ps1",
     "shortcut:win": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/Create-DesktopShortcut.ps1",
-    "build:mac": "electron-builder --mac",
+    "build:mac": "electron-builder --mac --x64 --arm64",
+    "build:mac:dir": "electron-builder --mac dir",
     "build:win": "electron-builder --win"
   },
   "keywords": ["focus", "timer", "pomodoro", "electron"],
@@ -21,8 +23,19 @@
   "build": {
     "appId": "com.floatfocus.timer",
     "productName": "FloatFocus Timer",
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
     "files": ["main.js", "preload.js", "renderer/**/*", "assets/**/*"],
-    "mac": { "category": "public.app-category.productivity" },
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": ["dmg", "zip"]
+    },
+    "dmg": {
+      "backgroundColor": "#f6f8fb",
+      "contents": [
+        { "x": 130, "y": 220, "type": "file" },
+        { "x": 410, "y": 220, "type": "link", "path": "/Applications" }
+      ]
+    },
     "win": {
       "target": "nsis",
       "icon": "assets/FloatFocusTimer.ico"

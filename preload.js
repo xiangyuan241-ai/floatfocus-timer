@@ -6,6 +6,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('floatFocus', {
+  platform: process.platform,
   setClickThrough: (enabled) => ipcRenderer.invoke('window:set-click-through', enabled),
   setPointerUnlocked: (enabled) => ipcRenderer.send('window:set-pointer-unlocked', enabled),
   startWindowDrag: (point) => ipcRenderer.send('window:drag-start', point),

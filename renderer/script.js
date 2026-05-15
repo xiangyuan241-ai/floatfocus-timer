@@ -19,6 +19,7 @@ const durationOk     = document.getElementById('duration-ok');
 const durationCancel = document.getElementById('duration-cancel');
 
 const api = window.floatFocus || {};   // gracefully degrade if opened in plain browser
+const clickThroughShortcut = api.platform === 'darwin' ? 'Command+Shift+T' : 'Ctrl+Shift+T';
 
 // ---- State ----
 const POMODORO_SEQUENCE_MINUTES = [25, 5, 25, 5, 25, 5, 25, 30];
@@ -70,6 +71,12 @@ function applyOpacity(value) {
   document.documentElement.style.setProperty('--wash-hover-end-alpha', (0.52 * hoverOpacity).toString());
   document.documentElement.style.setProperty('--control-bg-alpha', (0.42 * opacity).toString());
   document.documentElement.style.setProperty('--control-hover-alpha', (0.58 * hoverOpacity).toString());
+}
+
+function updateShortcutTitles() {
+  [btnThrough, btnPin].forEach((button) => {
+    button.title = `切换点击穿透 (${clickThroughShortcut})`;
+  });
 }
 
 // ---- Usage tracking ----
@@ -401,4 +408,5 @@ api.onOpacity        && api.onOpacity((value) => applyOpacity(value));
 api.onFlushUsage     && api.onFlushUsage(() => commitUsage());
 
 applyOpacity(0.8);
+updateShortcutTitles();
 render();
