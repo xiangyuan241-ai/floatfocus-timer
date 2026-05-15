@@ -37,7 +37,6 @@ jobs:
         with:
           name: FloatFocus Timer macOS
           path: |
-            dist/*.dmg
             dist/*.zip
           if-no-files-found: error
 

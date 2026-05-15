@@ -17,12 +17,11 @@
 
 ### 方法一：使用安装包
 
-如果仓库右侧 `Releases` 有 macOS 安装包，下载对应芯片的文件：
+如果仓库右侧 `Releases` 有 macOS 安装包，下载：
 
-- Apple Silicon：`FloatFocus Timer-...-mac-arm64.dmg`
-- Intel Mac：`FloatFocus Timer-...-mac-x64.dmg`
+- `FloatFocus Timer-...-x64.zip`
 
-打开 `.dmg` 后，把 `FloatFocus Timer.app` 拖到 `Applications`。如果第一次启动时 macOS 提示“无法验证开发者”，右键点击应用，选择“打开”。未签名版本可能需要在终端执行：
+解压后，把 `FloatFocus Timer.app` 拖到 `Applications`。如果第一次启动时 macOS 提示“无法验证开发者”，右键点击应用，选择“打开”。未签名版本可能需要在终端执行：
 
 ```bash
 xattr -dr com.apple.quarantine "/Applications/FloatFocus Timer.app"
@@ -110,7 +109,7 @@ npm ci
 npm run build:mac
 ```
 
-打包结果会生成在 `dist` 目录，包括 `.dmg` 和 `.zip`。GitHub Actions 默认输出 Intel `x64` 版本；Apple Silicon 机器可通过 Rosetta 运行，源码安装方式会使用本机架构。
+打包结果会生成在 `dist` 目录，包括 `.zip`。GitHub Actions 默认输出 Intel `x64` 版本；Apple Silicon 机器可通过 Rosetta 运行，源码安装方式会使用本机架构。
 
 ## 自动构建 Windows / macOS
 
