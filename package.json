@@ -1,6 +1,6 @@
 {
   "name": "floatfocus-timer",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "A floating, transparent, always-on-top focus timer for macOS and Windows.",
   "main": "main.js",
   "scripts": {
