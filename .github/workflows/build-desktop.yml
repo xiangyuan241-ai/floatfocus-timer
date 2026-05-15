@@ -1,4 +1,4 @@
-name: Build Desktop Apps
+name: Build macOS Release
 
 on:
   workflow_dispatch:
@@ -11,8 +11,19 @@ permissions:
 
 jobs:
   build_macos:
-    name: Build macOS
-    runs-on: macos-latest
+    name: Build macOS (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runner: macos-15-intel
+            script: build:mac:x64
+          - arch: arm64
+            runner: macos-15
+            script: build:mac:arm64
 
     steps:
       - name: Check out repository
@@ -28,14 +39,14 @@ jobs:
         run: npm ci
 
       - name: Build app
-        run: npm run build:mac
+        run: npm run ${{ matrix.script }}
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
 
       - name: Upload macOS artifact
         uses: actions/upload-artifact@v4
         with:
-          name: FloatFocus Timer macOS
+          name: FloatFocus Timer macOS ${{ matrix.arch }}
           path: |
             dist/*.zip
           if-no-files-found: error
@@ -68,5 +79,5 @@ jobs:
           else
             gh release create "$GITHUB_REF_NAME" "${files[@]}" \
               --title "$GITHUB_REF_NAME" \
-              --notes "FloatFocus Timer desktop builds for Windows and macOS."
+              --notes "FloatFocus Timer macOS builds for Intel x64 and Apple Silicon arm64."
           fi

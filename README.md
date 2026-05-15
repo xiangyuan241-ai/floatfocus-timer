@@ -17,9 +17,10 @@
 
 ### 方法一：使用安装包
 
-如果仓库右侧 `Releases` 有 macOS 安装包，下载：
+如果仓库右侧 `Releases` 有 macOS 安装包，按你的 Mac 芯片下载对应文件：
 
-- `FloatFocus Timer-...-x64.zip`
+- Intel Mac：`FloatFocus Timer-...-x64.zip`
+- Apple Silicon Mac：`FloatFocus Timer-...-arm64.zip`
 
 解压后，把 `FloatFocus Timer.app` 拖到 `Applications`。如果第一次启动时 macOS 提示“无法验证开发者”，右键点击应用，选择“打开”。未签名版本可能需要在终端执行：
 
@@ -109,15 +110,20 @@ npm ci
 npm run build:mac
 ```
 
-打包结果会生成在 `dist` 目录，包括 `.zip`。GitHub Actions 默认输出 Intel `x64` 版本；Apple Silicon 机器可通过 Rosetta 运行，源码安装方式会使用本机架构。
+打包结果会生成在 `dist` 目录，包括 Intel `x64` 和 Apple Silicon `arm64` 两个 `.zip` 文件。也可以只打单一架构：
 
-## 自动构建 Windows / macOS
+```bash
+npm run build:mac:x64
+npm run build:mac:arm64
+```
+
+## 自动构建 macOS
 
 仓库包含 GitHub Actions 工作流：`.github/workflows/build-desktop.yml`。
 
-- 手动运行 `Build Desktop Apps` 可以同时生成 Windows 和 macOS 构建产物。
+- 手动运行 `Build macOS Release` 可以生成 Intel `x64` 和 Apple Silicon `arm64` 构建产物。
 - 推送 `v*` 标签，例如 `v0.1.0`，会触发自动构建并把安装包上传到 GitHub Release。
-- macOS 构建会在 GitHub 的 `macos-latest` runner 上执行，避免 Windows 本机无法打 mac 包的问题。
+- Intel `x64` 构建固定在 GitHub 的 `macos-15-intel` runner 上执行；Apple Silicon `arm64` 构建在 `macos-15` runner 上执行，避免 runner 架构变化导致打包失败。
 
 ## 使用方式
 
@@ -151,7 +157,7 @@ electron/
     Create-DesktopShortcut.ps1    创建桌面快捷方式
     Start-FloatFocusTimer.vbs     隐藏命令行窗口启动应用
   .github/workflows/
-    build-desktop.yml             在 Windows / macOS runner 上生成安装包
+    build-desktop.yml             在 macOS runner 上生成 Intel / Apple Silicon 安装包
 ```
 
 ## 关键实现
