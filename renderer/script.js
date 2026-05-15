@@ -10,6 +10,7 @@ const btnPause    = document.getElementById('btn-pause');
 const btnReset   = document.getElementById('btn-reset');
 const btnThrough  = document.getElementById('btn-through');
 const btnPin      = document.getElementById('btn-pin');
+const btnReport   = document.getElementById('btn-report');
 const btnMenu     = document.getElementById('btn-menu');
 const presetButtons = [...document.querySelectorAll('[data-preset]')];
 const durationEditor = document.getElementById('duration-editor');
@@ -21,11 +22,14 @@ const api = window.floatFocus || {};   // gracefully degrade if opened in plain 
 
 // ---- State ----
 const POMODORO_SEQUENCE_MINUTES = [25, 5, 25, 5, 25, 5, 25, 30];
+const USAGE_COMMIT_MS = 15000;
 
 let durationSec = 25 * 60;
 let remaining   = durationSec;
 let running     = false;
 let tickHandle  = null;
+let usageCommitHandle = null;
+let activeUsage = null;
 let pomodoroIndex = 0;
 let clickThrough = false;
 let suppressNextDoubleClick = false;
@@ -68,10 +72,85 @@ function applyOpacity(value) {
   document.documentElement.style.setProperty('--control-hover-alpha', (0.58 * hoverOpacity).toString());
 }
 
+// ---- Usage tracking ----
+function currentUsageKind() {
+  if (pomodoroIndex !== null) {
+    return pomodoroIndex % 2 === 0 ? 'focus' : 'break';
+  }
+
+  return durationSec <= 10 * 60 ? 'break' : 'focus';
+}
+
+function createUsageId() {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function beginUsage() {
+  if (activeUsage) return;
+
+  const now = Date.now();
+  activeUsage = {
+    sessionId: createUsageId(),
+    kind: currentUsageKind(),
+    plannedSec: durationSec,
+    lastCommittedAt: now,
+    countAsSession: true,
+  };
+
+  clearInterval(usageCommitHandle);
+  usageCommitHandle = setInterval(() => commitUsage(), USAGE_COMMIT_MS);
+}
+
+function sendUsage(payload) {
+  if (!api.recordUsage) return Promise.resolve(false);
+  return api.recordUsage(payload).catch(() => false);
+}
+
+function commitUsage(options = {}) {
+  if (!activeUsage) return;
+
+  const endedAt = Math.max(
+    Date.now(),
+    activeUsage.lastCommittedAt + (options.completed ? 1 : 0)
+  );
+  const elapsedSec = Math.round((endedAt - activeUsage.lastCommittedAt) / 1000);
+  if (elapsedSec <= 0 && !options.completed) return;
+
+  const payload = {
+    sessionId: activeUsage.sessionId,
+    kind: activeUsage.kind,
+    plannedSec: activeUsage.plannedSec,
+    startedAt: activeUsage.lastCommittedAt,
+    endedAt,
+    countAsSession: activeUsage.countAsSession,
+    completed: !!options.completed,
+  };
+
+  activeUsage.lastCommittedAt = endedAt;
+  activeUsage.countAsSession = false;
+  return sendUsage(payload);
+}
+
+function endUsage(options = {}) {
+  if (!activeUsage) return;
+
+  clearInterval(usageCommitHandle);
+  usageCommitHandle = null;
+  commitUsage(options);
+  activeUsage = null;
+}
+
+function openUsageReport() {
+  Promise.resolve(commitUsage()).finally(() => {
+    api.openReport && api.openReport();
+  });
+}
+
 // ---- Timer ----
 function start() {
   if (running || remaining <= 0) return;
   running = true;
+  beginUsage();
   const endAt = Date.now() + remaining * 1000;
   tickHandle = setInterval(() => {
     remaining = Math.max(0, Math.round((endAt - Date.now()) / 1000));
@@ -81,15 +160,17 @@ function start() {
   render();
 }
 
-function pause() {
+function pause(options = {}) {
   if (!running) return;
   running = false;
   clearInterval(tickHandle);
+  tickHandle = null;
+  endUsage(options);
   render();
 }
 
 function reset() {
-  pause();
+  pause({ reason: 'reset' });
   remaining = durationSec;
   toastEl.classList.remove('is-on');
   render();
@@ -104,13 +185,13 @@ function getPomodoroIndex(minutes) {
 }
 
 function setDuration(minutes, options = {}) {
+  pause({ reason: 'duration-change' });
   const normalizedMinutes = Math.max(1, Number(minutes) || 1);
   durationSec = Math.max(1, Math.round(normalizedMinutes * 60));
   remaining = durationSec;
   if (options.syncPomodoro !== false) {
     pomodoroIndex = getPomodoroIndex(normalizedMinutes);
   }
-  pause();
   render();
 }
 
@@ -146,7 +227,7 @@ function applyCustomDuration() {
 }
 
 function finish() {
-  pause();
+  pause({ completed: true, reason: 'completed' });
   // Soft "ding". WebAudio so we don't ship an asset.
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -272,6 +353,7 @@ btnThrough.addEventListener('click', (event) => setClickThrough(!clickThrough, {
 btnPin.addEventListener('click', (event) => setClickThrough(!clickThrough, {
   point: { x: event.clientX, y: event.clientY },
 }));
+btnReport.addEventListener('click', openUsageReport);
 btnMenu.addEventListener('click',   () => api.showContextMenu && api.showContextMenu());
 presetButtons.forEach((button) => {
   button.addEventListener('click', () => setDuration(Number(button.dataset.preset)));
@@ -309,12 +391,14 @@ card.addEventListener('dblclick', (event) => {
 
 // Right-click anywhere: native context menu
 window.addEventListener('contextmenu', (e) => { e.preventDefault(); api.showContextMenu && api.showContextMenu(); });
+window.addEventListener('beforeunload', () => endUsage({ reason: 'window-close' }));
 
 // Listen for main-process events
 api.onShortcutToggle && api.onShortcutToggle((on) => setClickThrough(on, { sync: false }));
 api.onPreset         && api.onPreset((mins) => setDuration(mins));
 api.onCustomDuration && api.onCustomDuration(() => askCustomDuration());
 api.onOpacity        && api.onOpacity((value) => applyOpacity(value));
+api.onFlushUsage     && api.onFlushUsage(() => commitUsage());
 
 applyOpacity(0.8);
 render();

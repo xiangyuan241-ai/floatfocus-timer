@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>FloatFocus Report</title>
+  <link rel="stylesheet" href="report.css" />
+</head>
+<body>
+  <main class="report-shell">
+    <header class="report-topbar">
+      <div class="brand">
+        <div class="drag-dots" aria-hidden="true">
+          <span></span><span></span><span></span>
+          <span></span><span></span><span></span>
+          <span></span><span></span><span></span>
+        </div>
+        <div>
+          <div class="title">Usage Report</div>
+          <div class="subtitle">Daily focus time</div>
+        </div>
+      </div>
+
+      <div class="window-actions">
+        <button class="icon-btn" id="btn-refresh" type="button" title="刷新">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M7.2 7.4A7 7 0 1 1 5 12.5"/>
+            <path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M5 5.5v5h5"/>
+          </svg>
+        </button>
+        <button class="icon-btn" id="btn-close" type="button" title="关闭">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" d="M6 6l12 12M18 6 6 18"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <section class="day-head">
+      <div class="date-tools">
+        <input id="report-date" type="date" />
+        <button class="text-btn" id="btn-export" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" d="M12 4v10m0 0 4-4m-4 4-4-4M5 19h14"/>
+          </svg>
+          导出当天
+        </button>
+      </div>
+
+      <div class="focus-hero">
+        <span>Focus</span>
+        <strong id="focus-time">0m</strong>
+        <small id="focus-note">0% of tracked time</small>
+      </div>
+    </section>
+
+    <section class="metrics" aria-label="Daily summary">
+      <div class="metric">
+        <span>Total</span>
+        <strong id="total-time">0m</strong>
+      </div>
+      <div class="metric">
+        <span>Break</span>
+        <strong id="break-time">0m</strong>
+      </div>
+      <div class="metric">
+        <span>Started</span>
+        <strong id="focus-sessions">0</strong>
+      </div>
+      <div class="metric">
+        <span>Completed</span>
+        <strong id="completed-focus">0</strong>
+      </div>
+    </section>
+
+    <section class="chart-section">
+      <div class="section-title">
+        <h2>14-day focus trend</h2>
+        <span id="trend-range"></span>
+      </div>
+      <div class="week-chart" id="week-chart"></div>
+    </section>
+
+    <section class="chart-section">
+      <div class="section-title">
+        <h2>Day timeline</h2>
+        <span>Focus and break blocks</span>
+      </div>
+      <div class="timeline-ticks" id="timeline-ticks"></div>
+      <div class="timeline" id="timeline"></div>
+    </section>
+
+    <section class="sessions-section">
+      <div class="section-title">
+        <h2>Sessions</h2>
+        <span id="session-count">0 blocks</span>
+      </div>
+      <ul class="sessions" id="sessions"></ul>
+    </section>
+
+    <div class="status" id="status" role="status"></div>
+  </main>
+
+  <script src="report.js"></script>
+</body>
+</html>

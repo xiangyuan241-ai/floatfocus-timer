@@ -13,6 +13,11 @@ contextBridge.exposeInMainWorld('floatFocus', {
   endWindowDrag:   () => ipcRenderer.send('window:drag-end'),
   setOpacity:      (value)   => ipcRenderer.invoke('window:set-opacity', value),
   showContextMenu: ()        => ipcRenderer.invoke('menu:show'),
+  recordUsage:     (payload) => ipcRenderer.invoke('stats:record-usage', payload),
+  openReport:      ()        => ipcRenderer.invoke('report:open'),
+  getReportData:   (options) => ipcRenderer.invoke('report:get-data', options),
+  exportDayReport: (date)    => ipcRenderer.invoke('report:export-day', date),
+  closeWindow:     ()        => ipcRenderer.invoke('window:close-current'),
   quit:            ()        => ipcRenderer.invoke('window:quit'),
 
   // Subscriptions back from main
@@ -20,4 +25,5 @@ contextBridge.exposeInMainWorld('floatFocus', {
   onPreset:         (cb) => ipcRenderer.on('preset', (_e, minutes) => cb(minutes)),
   onCustomDuration: (cb) => ipcRenderer.on('custom-duration', () => cb()),
   onOpacity:        (cb) => ipcRenderer.on('opacity', (_e, value) => cb(value)),
+  onFlushUsage:     (cb) => ipcRenderer.on('usage:flush', () => cb()),
 });
