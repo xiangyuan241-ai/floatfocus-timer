@@ -19,8 +19,8 @@
 
 如果仓库右侧 `Releases` 有 macOS 安装包，按你的 Mac 芯片下载对应文件：
 
-- Intel Mac：`FloatFocus Timer-...-x64.zip`
-- Apple Silicon Mac：`FloatFocus Timer-...-arm64.zip`
+- Intel Mac：`FloatFocus.Timer-...-x64.zip`
+- Apple Silicon Mac：`FloatFocus.Timer-...-arm64.zip`
 
 解压后，把 `FloatFocus Timer.app` 拖到 `Applications`。如果第一次启动时 macOS 提示“无法验证开发者”，右键点击应用，选择“打开”。未签名版本可能需要在终端执行：
 
